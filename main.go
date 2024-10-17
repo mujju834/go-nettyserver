@@ -13,18 +13,27 @@ import (
 
 var apiGatewayURL, serverPort string
 
-// Load environment variables from .env file
+// Load environment variables from .env file (only for local testing)
 func init() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+	if _, err := os.Stat(".env"); err == nil { // Check if .env file exists
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatalf("Error loading .env file: %v", err)
+		}
+		log.Println(".env file loaded successfully")
+	} else {
+		log.Println(".env file not found, using system environment variables.")
 	}
-	log.Println(".env file loaded successfully")
 
 	// Assign environment variables to global variables
 	apiGatewayURL = os.Getenv("API_GATEWAY_URL")
-	serverPort = os.Getenv("SERVER_PORT")
+	serverPort = os.Getenv("PORT") // Use "PORT" for Render
 
+	if serverPort == "" {
+		serverPort = "3999" // Default to 8080 if not set
+	}
+
+	// Debugging: Print the values
 	fmt.Printf("API_GATEWAY_URL: %s\n", apiGatewayURL)
 	fmt.Printf("SERVER_PORT: %s\n", serverPort)
 }
@@ -108,10 +117,6 @@ func copyHeaders(from http.Header, to http.Header) {
 }
 
 func main() {
-	if serverPort == "" {
-		log.Fatalf("SERVER_PORT not set or empty")
-	}
-
 	http.HandleFunc("/", proxyHandler)
 
 	log.Printf("Starting server on http://localhost:%s", serverPort)
